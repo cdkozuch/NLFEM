@@ -1,10 +1,10 @@
 # NLFEM
 Non-Linear (NL) Finite Element Method (FEM) implemented in MATLAB
 
-# How-To
+## How-To
 Run the "runFEM.m" file in MATLAB from a directory with all of the other files
 
-# Model
+## Model
 This program assumes a Neo-Hookean material model with finite deformation
 
 ## References
