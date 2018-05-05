@@ -1,5 +1,38 @@
 function [KT,Fint,F2,b2,sigma2,qBar2,alpha2,C2] = globTanStiff(elements,coors,U1,U2,F1,b1,qBar1,alpha1,matProps)
 %%GLOBTANSTIFF computes global tangent stiffness and residual force
+%Inputs:
+%   elements (nel x nnel): each row is list of node numbers for element
+%   coors (nnode x ndofn): each row is list of coordinates for node
+%   U1 (ndoft x 1): displacement for each dof from last step
+%   U2 (ndoft x 1): displacement for each dof for this step
+%   F1 (6 x nintpt): vectorized deformation gradient for each integration
+%                    point from the last step
+%   b1 (6 x nintpt): vectorized left-cauchy tensor for each integration
+%                    point from the last step
+%   qBar1 (6 x nintpt): vectorized back-stress tensor for each integration
+%                       point from the last step
+%   alpha1 (1 x nintpt): list of equivalent plastic strain for each
+%                        integration point from the last step
+%   matProps (1 x 6): material properties list [kappa,mu,C1,K0,K1,H]
+%       kappa (scalar): bulk modulus
+%       mu (scalar): shear modulus
+%       C1 (scalar): neo-hookean constant
+%       K0 (scalar): yield stress
+%       K1 (scalar): isotropic hardening modulus
+%       H (scalar): kinematic hardening modulus
+%Outputs:
+%   KT (sparse): Global tangent stiffness matrix
+%   Fint (sparse): Global internal force vector
+%   F2 (6 x nintpt): vectorized deformation gradient for each integration
+%                    point for this step
+%   b2 (6 x nintpt): vectorized left-cauchy tensor for each integration
+%                    point for this step
+%   qBar2 (6 x nintpt): vectorized back-stress tensor for each integration
+%                       point for this step
+%   alpha2 (1 x nintpt): list of equivalent plastic strain for each
+%                        integration point for this step
+%   C2 (6 x 6 x nintpt): material stiffness tensor for each integration 
+%                        point for this step
 
 nten = 6; %number of unique stress/strain values in 3D
 
@@ -52,23 +85,24 @@ for iter=1:nel
           natcoors = [xi,eta,zeta];            
           [B,B2,DN,J] = bmatHex8(elemCoors,natcoors);
           detJ = det(J);
-          f2 = eye(3) + du*DN';
+          f2 = eye(3) + du*DN'; %relative deformation gradient
           
           F = increaseOrder12(F1(:,intpi));
-          F = f2*F;
+          F = f2*F; %total deformation gradient
           b = increaseOrder12(b1(:,intpi));
           qBar = increaseOrder12(qBar1(:,intpi));
           alpha = alpha1(intpi);
           
           [b,tau,qBar,alpha,C] = returnMap(f2,F,b,qBar,alpha,matProps);
-          sigmaMat = tau/det(F);
+          sigmaMat = tau/det(F); %cauchy stress
 
-          PK2 = inv(F)*tau*inv(F'); %2nd piola kirchhoff stress
+          PK2 = (F\tau)/(F'); %2nd piola kirchhoff stress
           PK2p = kron(eye(3),PK2);
             
           ke = ke + detJ*(B'*C*B + B2'*PK2p*B2); %element stiffness matrix
           fe = fe + detJ*B'*reduceOrder21(PK2); %element force vector
           
+          %compress and record history variables
           F2(:,intpi) = reduceOrder21(F);
           b2(:,intpi) = reduceOrder21(b);
           sigma2(:,intpi) = reduceOrder21(sigmaMat);

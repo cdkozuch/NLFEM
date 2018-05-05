@@ -5,6 +5,8 @@ function [B,B2,DN,J] = bmatHex8(coors,natcoors)
 %   natcoors (1x3 vector): natural coordinates [xi,eta,zeta]
 %Ouput:
 %   B (6x24 matrix): strain-displacement matrix
+%   B2 (9x24 matrix): secondary strain-displacement matrix
+%   DN (3x8 matrix): shape function derivatives
 %   J (3x3 matrix): Jacobian
 
 nnel = size(coors,1); %number of nodes per element
@@ -36,7 +38,7 @@ for iter=1:nnel
 end
 DN = J\dN;
 
-%Calculation of displacement-strain matrix
+%Calculation of displacement-strain matrices
 B = zeros(6,24); B2 = zeros(9,24);
 for iter=1:nnel
     DNi = DN(:,iter); 
